@@ -1,10 +1,13 @@
 package com.example.messageconverter;
 
 import com.example.messageconverter.controller.Controller;
+import com.example.messageconverter.controller.MyRestController;
 import com.example.messageconverter.controller.RequestHttpBodyController;
 import com.example.messageconverter.controller.RequestParameterController;
+import org.reflections.Reflections;
 import org.springframework.http.MediaType;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.ReflectionUtils;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.ServletException;
@@ -16,18 +19,32 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @WebServlet(name = "MessageConverterController", urlPatterns = "/*")
 public class MessageConverterDispatcherServlet extends HttpServlet {
     Map<String, Controller> mappingMap = new HashMap<>();
 
     @PostConstruct
-    void initMappingMap() {
-        mappingMap.put("/request-param", new RequestParameterController());
-        mappingMap.put("/request-body", new RequestHttpBodyController());
+    void initMappingMap() throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        String base = getBasePackage(); // 프로젝트의 base package 를 확인합니다.
+        Reflections reflections = new Reflections(base);
+        // reflection 라이브러리를 사용해서 제가 만든 MyRestController 애노테이션이 붙어있는 class 만 가져옵니다.
+        Set<Class<?>> annotatedClass = reflections.getTypesAnnotatedWith(MyRestController.class);
+
+        for (Class<?> clazz : annotatedClass) {
+            MyRestController myRestController = clazz.getAnnotation(MyRestController.class);
+            // mapping map 에 추가합니다.
+            mappingMap.put(myRestController.value(), (Controller) clazz.getDeclaredConstructor().newInstance());
+        }
+    }
+
+    private String getBasePackage() {
+        return this.getClass().getPackage().getName();
     }
 
     @Override

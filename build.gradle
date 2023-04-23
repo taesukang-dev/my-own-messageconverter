@@ -13,6 +13,9 @@ repositories {
 }
 
 dependencies {
+	// reflection
+	implementation 'org.reflections:reflections:0.9.10'
+
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
